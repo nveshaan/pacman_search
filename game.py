@@ -611,11 +611,40 @@ class Game:
         agentIndex = self.startingIndex
         numAgents = len( self.agents )
 
+        # Pause flag for spacebar control - start paused
+        self.paused = True
+        print("Game is paused. Press space to play.")
+
         while not self.gameOver:
             # Fetch the next agent
             agent = self.agents[agentIndex]
             move_time = 0
             skip_action = False
+            
+            # Handle pause/resume with spacebar
+            if hasattr(self, 'display'):
+                try:
+                    from graphicsUtils import keys_pressed
+                    pressed_keys = keys_pressed()
+                    if 'space' in pressed_keys:
+                        self.paused = not self.paused
+                        if self.paused:
+                            print("Game paused.")
+                        else:
+                            print("Game resumed.")
+                        time.sleep(0.3)  # Debounce
+                except:
+                    pass
+            
+            # Skip game logic if paused, but still update display
+            if self.paused:
+                try:
+                    self.display.update(self.state.data)
+                except:
+                    pass
+                time.sleep(0.05)
+                continue
+            
             # Generate an observation of the state
             if 'observationFunction' in dir( agent ):
                 self.mute(agentIndex)

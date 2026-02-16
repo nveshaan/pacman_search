@@ -295,15 +295,17 @@ class CornersProblem(search.SearchProblem):
         Returns the start state (in your state space, not the full Pacman state
         space)
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        # State is a tuple: (position, corners_visited)
+        # corners_visited is a tuple of 4 booleans indicating if each corner has been visited
+        return (self.startingPosition, (False, False, False, False))
 
     def isGoalState(self, state: Any):
         """
         Returns whether this search state is a goal state of the problem.
         """
-        "*** YOUR CODE HERE ***"
-        util.raiseNotDefined()
+        position, corners_visited = state
+        # Goal is reached when all four corners have been visited
+        return all(corners_visited)
 
     def getSuccessors(self, state: Any):
         """
@@ -317,15 +319,23 @@ class CornersProblem(search.SearchProblem):
         """
 
         successors = []
+        position, corners_visited = state
+        x, y = position
+        
         for action in [Directions.NORTH, Directions.SOUTH, Directions.EAST, Directions.WEST]:
-            # Add a successor state to the successor list if the action is legal
-            # Here's a code snippet for figuring out whether a new position hits a wall:
-            #   x,y = currentPosition
-            #   dx, dy = Actions.directionToVector(action)
-            #   nextx, nexty = int(x + dx), int(y + dy)
-            #   hitsWall = self.walls[nextx][nexty]
-
-            "*** YOUR CODE HERE ***"
+            # Check if the move is legal (doesn't hit a wall)
+            dx, dy = Actions.directionToVector(action)
+            nextx, nexty = int(x + dx), int(y + dy)
+            
+            if not self.walls[nextx][nexty]:
+                # Update which corners have been visited
+                new_corners_visited = list(corners_visited)
+                for i, corner in enumerate(self.corners):
+                    if (nextx, nexty) == corner and not corners_visited[i]:
+                        new_corners_visited[i] = True
+                
+                next_state = ((nextx, nexty), tuple(new_corners_visited))
+                successors.append((next_state, action, 1))
 
         self._expanded += 1 # DO NOT CHANGE
         return successors
@@ -359,10 +369,26 @@ def cornersHeuristic(state: Any, problem: CornersProblem):
     admissible.
     """
     corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
-
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, corners_visited = state
+    
+    # Find all unvisited corners
+    unvisited_corners = []
+    for i, corner in enumerate(corners):
+        if not corners_visited[i]:
+            unvisited_corners.append(corner)
+    
+    # If all corners are visited, we're done
+    if not unvisited_corners:
+        return 0
+    
+    # Admissible heuristic: Manhattan distance to the farthest unvisited corner
+    # This is a lower bound because we must visit all corners, including the farthest one
+    max_distance = 0
+    for corner in unvisited_corners:
+        distance = abs(position[0] - corner[0]) + abs(position[1] - corner[1])
+        max_distance = max(max_distance, distance)
+    
+    return max_distance
 
 
 
@@ -452,8 +478,22 @@ def foodHeuristic(state: Tuple[Tuple, List[List]], problem: FoodSearchProblem):
     problem.heuristicInfo['wallCount']
     """
     position, foodGrid = state
-    "*** YOUR CODE HERE ***"
-    return 0
+    
+    # Get list of remaining food positions
+    foodList = foodGrid.asList()
+    
+    # If no food left, we're done
+    if not foodList:
+        return 0
+    
+    # Find minimum Manhattan distance to any remaining food
+    # This is admissible because we must visit at least the closest food
+    min_distance = float('inf')
+    for food_pos in foodList:
+        distance = abs(position[0] - food_pos[0]) + abs(position[1] - food_pos[1])
+        min_distance = min(min_distance, distance)
+    
+    return min_distance
 
 
 class ClosestDotSearchAgent(SearchAgent):

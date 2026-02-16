@@ -144,6 +144,34 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directi
     """Search the node that has the lowest combined cost and heuristic first."""
     start = problem.getStartState()
     priorityQueue = util.PriorityQueue()
+    priorityQueue.push((start, []), heuristic(start, problem))
+    bestCosts = {start: 0}
+
+    while not priorityQueue.isEmpty():
+        node, actions = priorityQueue.pop()
+        if problem.isGoalState(node):
+            return actions
+        
+        currentCost = problem.getCostOfActions(actions)
+        
+        # Skip if we've found a better path to this node
+        if currentCost > bestCosts.get(node, float('inf')):
+            continue
+            
+        for successor, action, stepCost in problem.getSuccessors(node):
+            newActions = actions + [action]
+            newCost = problem.getCostOfActions(newActions)
+            
+            # Only add to queue if this is a better path to the successor
+            if newCost < bestCosts.get(successor, float('inf')):
+                bestCosts[successor] = newCost
+                priority = newCost + heuristic(successor, problem)
+                priorityQueue.push((successor, newActions), priority)
+
+def greedyBestFirstSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directions]:
+    """Search the node that has the lowest heuristic first."""
+    start = problem.getStartState()
+    priorityQueue = util.PriorityQueue()
     priorityQueue.push((start, []), 0)
     visited = set()
 
@@ -155,7 +183,7 @@ def aStarSearch(problem: SearchProblem, heuristic=nullHeuristic) -> List[Directi
             visited.add(node)
             for successor, action, stepCost in problem.getSuccessors(node):
                 newActions = actions + [action]
-                newCost = problem.getCostOfActions(newActions) + heuristic(successor, problem)
+                newCost = heuristic(successor, problem)
                 priorityQueue.push((successor, newActions), newCost)
 
 # Abbreviations
@@ -163,3 +191,4 @@ bfs = breadthFirstSearch
 dfs = depthFirstSearch
 astar = aStarSearch
 ucs = uniformCostSearch
+greed = greedyBestFirstSearch
